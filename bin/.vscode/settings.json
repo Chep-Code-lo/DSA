@@ -1,0 +1,26 @@
+{
+  "editor.quickSuggestions": { "other": true, "comments": true, "strings": true },
+  "editor.suggestOnTriggerCharacters": true,
+  "editor.parameterHints.enabled": true,
+  "editor.inlineSuggest.enabled": true,
+  "editor.snippetSuggestions": "inline",
+  "editor.tabCompletion": "on",
+  "editor.autoIndent": "keep",         
+  "editor.acceptSuggestionOnEnter": "off",
+  "editor.tabSize": 4,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  // Java
+  "java.completion.enabled": true,
+  "java.completion.guessMethodArguments": true,
+  "java.debug.settings.console": "externalTerminal",
+  "terminal.integrated.env.windows": {
+  "JAVA_TOOL_OPTIONS": "-Dfile.encoding=UTF-8"
+},
+"files.associations": {
+    "iostream": "cpp",
+    "ostream": "cpp",
+    "limits": "cpp"
+}
+
+}

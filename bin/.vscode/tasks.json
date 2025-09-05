@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Java in WT tab",
+      "type": "shell",
+      "command": "wt.exe -w 0 nt -d \"${workspaceFolder}\" cmd /k \"javac -encoding UTF-8 bai_1\\*.java && java -Dfile.encoding=UTF-8 bai_1.Main\"",
+      "problemMatcher": []
+    }
+  ]
+}
