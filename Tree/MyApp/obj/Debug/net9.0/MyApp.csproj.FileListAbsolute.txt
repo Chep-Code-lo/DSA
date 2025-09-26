@@ -1,0 +1,15 @@
+D:\DSA\Tree\MyApp\bin\Debug\net9.0\MyApp.exe
+D:\DSA\Tree\MyApp\bin\Debug\net9.0\MyApp.deps.json
+D:\DSA\Tree\MyApp\bin\Debug\net9.0\MyApp.runtimeconfig.json
+D:\DSA\Tree\MyApp\bin\Debug\net9.0\MyApp.dll
+D:\DSA\Tree\MyApp\bin\Debug\net9.0\MyApp.pdb
+D:\DSA\Tree\MyApp\obj\Debug\net9.0\MyApp.GeneratedMSBuildEditorConfig.editorconfig
+D:\DSA\Tree\MyApp\obj\Debug\net9.0\MyApp.AssemblyInfoInputs.cache
+D:\DSA\Tree\MyApp\obj\Debug\net9.0\MyApp.AssemblyInfo.cs
+D:\DSA\Tree\MyApp\obj\Debug\net9.0\MyApp.csproj.CoreCompileInputs.cache
+D:\DSA\Tree\MyApp\obj\Debug\net9.0\MyApp.sourcelink.json
+D:\DSA\Tree\MyApp\obj\Debug\net9.0\MyApp.dll
+D:\DSA\Tree\MyApp\obj\Debug\net9.0\refint\MyApp.dll
+D:\DSA\Tree\MyApp\obj\Debug\net9.0\MyApp.pdb
+D:\DSA\Tree\MyApp\obj\Debug\net9.0\MyApp.genruntimeconfig.cache
+D:\DSA\Tree\MyApp\obj\Debug\net9.0\ref\MyApp.dll

@@ -1,0 +1,7 @@
+[
+  { "studentCode": "SV003", "firstName": "Minh", "lastName": "Nguyen", "dateOfBirth": "2005-11-10" },
+  { "studentCode": "SV001", "firstName": "An",   "lastName": "Tran",   "dateOfBirth": "2006-08-15" },
+  { "studentCode": "SV004", "firstName": "An",   "lastName": "Le",     "dateOfBirth": "2004-03-25" },
+  { "studentCode": "SV002", "firstName": "Hieu", "lastName": "Pham",   "dateOfBirth": "2005-08-15" },
+  { "studentCode": "SV005", "firstName": "Binh", "lastName": "Pham",   "dateOfBirth": "2003-11-29" }
+]
