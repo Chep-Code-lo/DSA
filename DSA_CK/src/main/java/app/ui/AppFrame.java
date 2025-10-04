@@ -4,7 +4,7 @@ import javax.swing.*;
 
 public class AppFrame extends JFrame {
   public AppFrame() {
-    super("Biểu thức | Cây gia phả | Băm chia dư");
+    super("DSA-CK");
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setSize(1200, 600);
     setLocationRelativeTo(null);

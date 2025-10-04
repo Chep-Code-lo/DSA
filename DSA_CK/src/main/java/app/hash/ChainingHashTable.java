@@ -91,4 +91,28 @@ public class ChainingHashTable<K, V> implements HashTable<K, V> {
     }
     return sb.toString();
   }
+
+  public String traceGet(K key) {
+    StringBuilder sb = new StringBuilder();
+    int m = buckets.length;
+    int i = idx(key);
+    sb.append("hash(").append(key).append(") % ").append(m).append(" = ").append(i).append('\n');
+    Node<K, V> p = buckets[i];
+    if (p == null) {
+      sb.append("Bucket empty -> NOT FOUND");
+      return sb.toString();
+    }
+    int pos = 0;
+    while (p != null) {
+      sb.append(String.format("Visit node %d: key=%s, val=%s\n", pos, String.valueOf(p.k), String.valueOf(p.v)));
+      if (key == null ? p.k == null : key.equals(p.k)) {
+        sb.append("Match in chain at position ").append(pos).append(" -> FOUND, value=").append(p.v);
+        return sb.toString();
+      }
+      p = p.next;
+      pos++;
+    }
+    sb.append("Reached end of chain -> NOT FOUND");
+    return sb.toString();
+  }
 }

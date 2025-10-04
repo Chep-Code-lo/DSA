@@ -5,9 +5,11 @@ import javax.swing.border.*;
 import javax.swing.tree.*;
 import java.awt.*;
 import java.util.*;
+import java.util.List;
+import java.util.function.BiConsumer;
 
 public class FamilyTreePanel extends JPanel {
-  private NaryNode root = sampleTree();
+  private NaryNode root = createSampleTree();
   private final DefaultMutableTreeNode swingRoot = new DefaultMutableTreeNode(root.name);
   private final JTree tree = new JTree(swingRoot);
   private final JTextArea stats = new JTextArea(8, 40);
@@ -15,124 +17,228 @@ public class FamilyTreePanel extends JPanel {
   private final GenogramPanel genogram = new GenogramPanel();
 
   public FamilyTreePanel() {
-    setLayout(new BorderLayout(8, 8));
+    super(new BorderLayout(8, 8));
+    initUI();
     rebuildSwingTree();
-    
-    // Tạo font lớn hơn cho tiêu đề
-    Font titleFont = new Font("SansSerif", Font.BOLD, 16);
-    
-    TitledBorder treeBorder = new TitledBorder("Cây gia phả (JTree)");
-    treeBorder.setTitleFont(titleFont);
+  }
+
+  // --- UI Initialization ---
+
+  private void initUI() {
+    JPanel leftPanel = createLeftPanel();
+    JPanel rightPanel = createRightPanel();
+
+    JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel);
+    split.setResizeWeight(0.5);
+    add(split, BorderLayout.CENTER);
+  }
+
+  private JPanel createLeftPanel() {
+    JPanel left = new JPanel(new BorderLayout(8, 8));
+
+    // Tree Panel
+    TitledBorder treeBorder = createTitledBorder("Cây gia phả (JTree)");
     tree.setBorder(treeBorder);
-    
-    // Thêm custom renderer với icon
     DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer();
     renderer.setLeafIcon(UIManager.getIcon("Tree.leafIcon"));
     renderer.setClosedIcon(UIManager.getIcon("Tree.closedIcon"));
     renderer.setOpenIcon(UIManager.getIcon("Tree.openIcon"));
     tree.setCellRenderer(renderer);
-
-    // Panel trái: cây gia phả, form, và số liệu
-    JPanel left = new JPanel(new BorderLayout(8, 8));
-    
-    // Cây gia phả ở trên
     JPanel treePanel = new JPanel(new BorderLayout());
     treePanel.add(new JScrollPane(tree), BorderLayout.CENTER);
     treePanel.setPreferredSize(new Dimension(600, 200));
-    
-    // Form ở giữa
-    JPanel formPanel = new JPanel(new BorderLayout());
-    formPanel.add(buildForm(titleFont), BorderLayout.CENTER);
+
+    // Form Panel
+    JPanel formPanel = createFormPanel();
     formPanel.setPreferredSize(new Dimension(600, 100));
-    
-    // Số liệu ở dưới
-    JPanel statsPanel = new JPanel(new BorderLayout());
-    TitledBorder statsBorder = new TitledBorder("Số liệu");
-    statsBorder.setTitleFont(titleFont);
+
+    // Stats Panel
+    TitledBorder statsBorder = createTitledBorder("Số liệu");
     stats.setBorder(statsBorder);
     stats.setEditable(false);
+    JPanel statsPanel = new JPanel(new BorderLayout());
     statsPanel.add(new JScrollPane(stats), BorderLayout.CENTER);
     statsPanel.setPreferredSize(new Dimension(600, 200));
-    
+
     left.add(treePanel, BorderLayout.NORTH);
     left.add(formPanel, BorderLayout.CENTER);
     left.add(statsPanel, BorderLayout.SOUTH);
+    return left;
+  }
 
-    // Panel phải: sơ đồ
+  private JPanel createRightPanel() {
     JPanel right = new JPanel(new BorderLayout());
-    TitledBorder genogramBorder = new TitledBorder("Sơ đồ (JGraphX)");
-    genogramBorder.setTitleFont(titleFont);
+    TitledBorder genogramBorder = createTitledBorder("Sơ đồ (JGraphX)");
     genogram.setBorder(genogramBorder);
     genogram.setRoot(root);
     right.add(genogram, BorderLayout.CENTER);
-
-    JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, left, right);
-    split.setResizeWeight(0.5);
-    split.setDividerLocation(0.5);
-
-    add(split, BorderLayout.CENTER);
+    return right;
   }
 
-  private JPanel buildForm(Font titleFont) {
+  private JPanel createFormPanel() {
     JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT));
-    TitledBorder formBorder = new TitledBorder("Thao tác");
-    formBorder.setTitleFont(titleFont);
-    p.setBorder(formBorder);
-    
-    // Tạo các button
-    JButton addBtn = new JButton("Thêm con");
-    JButton editBtn = new JButton("Sửa tên");
-    JButton delBtn = new JButton("Xóa nút");
-    JButton calcBtn = new JButton("Tính số liệu");
-    
-    // Thêm icon từ resources hoặc Unicode symbols
-    addBtn.setText("➕ Thêm con");
-    editBtn.setText("✏️ Sửa tên");
-    delBtn.setText("❌ Xóa nút");
-    calcBtn.setText("📊 Tính số liệu");
-    
-    // Style buttons with modern colors
-    Color btnAddColor = new Color(76, 175, 80);      // Green
-    Color btnEditColor = new Color(33, 150, 243);    // Blue
-    Color btnDelColor = new Color(244, 67, 54);      // Red
-    Color btnCalcColor = new Color(156, 39, 176);    // Purple
-    
-    addBtn.setBackground(btnAddColor);
-    editBtn.setBackground(btnEditColor);
-    delBtn.setBackground(btnDelColor);
-    calcBtn.setBackground(btnCalcColor);
-    
-    for (JButton btn : new JButton[]{addBtn, editBtn, delBtn, calcBtn}) {
-      btn.setForeground(Color.WHITE);
-      btn.setFocusPainted(false);
-      btn.setBorderPainted(false);
-      btn.setOpaque(true);
-      btn.setFont(new Font("SansSerif", Font.BOLD, 12));
-      btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-    }
-    
+    p.setBorder(createTitledBorder("Thao tác"));
+
     JLabel nameLabel = new JLabel("Tên:");
     nameLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
     nameField.setPreferredSize(new Dimension(150, 30));
     nameField.setBorder(BorderFactory.createCompoundBorder(
-        new LineBorder(new Color(189, 189, 189), 1, true),
-        BorderFactory.createEmptyBorder(5, 5, 5, 5)
+      new LineBorder(new Color(189, 189, 189), 1, true),
+      BorderFactory.createEmptyBorder(5, 5, 5, 5)
     ));
-    
+
     p.add(nameLabel);
     p.add(nameField);
-    p.add(addBtn);
-    p.add(editBtn);
-    p.add(delBtn);
-    p.add(calcBtn);
-    addBtn.addActionListener(e -> onAdd());
-    editBtn.addActionListener(e -> onEdit());
-    delBtn.addActionListener(e -> onDelete());
-    calcBtn.addActionListener(e -> onCalc());
+    p.add(createStyledButton("➕ Thêm con", new Color(76, 175, 80), e -> onAdd()));
+    p.add(createStyledButton("✏️ Sửa tên", new Color(33, 150, 243), e -> onEdit()));
+    p.add(createStyledButton("❌ Xóa nút", new Color(244, 67, 54), e -> onDelete()));
+    p.add(createStyledButton("📊 Tính số liệu", new Color(156, 39, 176), e -> onCalc()));
     return p;
   }
 
-  private static NaryNode sampleTree() {
+  private JButton createStyledButton(String text, Color bgColor, java.awt.event.ActionListener listener) {
+    JButton btn = new JButton(text);
+    btn.setBackground(bgColor);
+    btn.setForeground(Color.WHITE);
+    btn.setFocusPainted(false);
+    btn.setBorderPainted(false);
+    btn.setOpaque(true);
+    btn.setFont(new Font("SansSerif", Font.BOLD, 12));
+    btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    btn.addActionListener(listener);
+    return btn;
+  }
+
+  private TitledBorder createTitledBorder(String title) {
+    TitledBorder border = new TitledBorder(title);
+    border.setTitleFont(new Font("SansSerif", Font.BOLD, 16));
+    return border;
+  }
+
+  // --- Event Handlers ---
+
+  private void onAdd() {
+    getSelectedNode().ifPresent(node -> {
+      String name = nameField.getText().trim();
+      if (name.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Vui lòng nhập tên.", "Lỗi", JOptionPane.WARNING_MESSAGE);
+        return;
+      }
+      node.addChild(name);
+      nameField.setText("");
+      rebuildSwingTree();
+    });
+  }
+
+  private void onEdit() {
+    getSelectedNode().ifPresent(node -> {
+      String name = nameField.getText().trim();
+      if (name.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Vui lòng nhập tên.", "Lỗi", JOptionPane.WARNING_MESSAGE);
+        return;
+      }
+      node.name = name;
+      rebuildSwingTree();
+    });
+  }
+
+  private void onDelete() {
+    getSelectedNode().ifPresent(node -> {
+      if (node == root) {
+        JOptionPane.showMessageDialog(this, "Không thể xóa nút gốc.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        return;
+      }
+      node.removeFromParent();
+      rebuildSwingTree();
+    });
+  }
+
+  private void onCalc() {
+    Map<Integer, List<NaryNode>> byGeneration = new TreeMap<>();
+    bfs(root, (node, depth) -> byGeneration.computeIfAbsent(depth, k -> new ArrayList<>()).add(node));
+
+    StringBuilder sb = new StringBuilder();
+    byGeneration.forEach((depth, nodes) ->
+      sb.append(String.format("Thế hệ %d: %d thành viên\n", depth, nodes.size()))
+    );
+
+    int k = 1; // Thế hệ cần tính số con cháu
+    List<NaryNode> genK = byGeneration.getOrDefault(k, List.of());
+    if (!genK.isEmpty()) {
+      sb.append(String.format("\nThế hệ %d (con-cháu mỗi người):\n", k));
+      genK.forEach(node ->
+        sb.append(String.format("- %s: %d\n", node.name, node.descendants()))
+      );
+    }
+    stats.setText(sb.toString());
+  }
+
+  // --- Tree & Model Manipulation ---
+
+  private Optional<NaryNode> getSelectedNode() {
+    TreePath selPath = tree.getSelectionPath();
+    if (selPath == null) {
+      JOptionPane.showMessageDialog(this, "Vui lòng chọn một nút trên cây.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+      return Optional.empty();
+    }
+    return findByPath(selPath);
+  }
+
+  private void rebuildSwingTree() {
+    swingRoot.removeAllChildren();
+    swingRoot.setUserObject(root.name);
+    buildChildren(swingRoot, root);
+    ((DefaultTreeModel) tree.getModel()).reload();
+    for (int i = 0; i < tree.getRowCount(); i++) {
+      tree.expandRow(i);
+    }
+    genogram.setRoot(root);
+  }
+
+  private void buildChildren(DefaultMutableTreeNode parentSwing, NaryNode parentModel) {
+    for (NaryNode childModel : parentModel.children) {
+      DefaultMutableTreeNode childSwing = new DefaultMutableTreeNode(childModel.name);
+      parentSwing.add(childSwing);
+      buildChildren(childSwing, childModel);
+    }
+  }
+
+  private Optional<NaryNode> findByPath(TreePath path) {
+    NaryNode current = root;
+    // Bỏ qua gốc (phần tử đầu tiên trong path)
+    for (int i = 1; i < path.getPathCount(); i++) {
+      String name = path.getPathComponent(i).toString();
+      Optional<NaryNode> next = current.children.stream()
+        .filter(n -> n.name.equals(name))
+        .findFirst();
+      if (next.isEmpty()) return Optional.empty();
+      current = next.get();
+    }
+    return Optional.of(current);
+  }
+
+  private void bfs(NaryNode start, BiConsumer<NaryNode, Integer> visitor) {
+    Queue<NaryNode> queue = new ArrayDeque<>();
+    Map<NaryNode, Integer> depthMap = new HashMap<>();
+
+    queue.add(start);
+    depthMap.put(start, 0);
+
+    while (!queue.isEmpty()) {
+      NaryNode current = queue.poll();
+      int depth = depthMap.get(current);
+      visitor.accept(current, depth);
+
+      for (NaryNode child : current.children) {
+        if (!depthMap.containsKey(child)) {
+          depthMap.put(child, depth + 1);
+          queue.add(child);
+        }
+      }
+    }
+  }
+
+  private static NaryNode createSampleTree() {
     NaryNode r = new NaryNode("Ông Tổ");
     NaryNode a = r.addChild("A");
     NaryNode b = r.addChild("B");
@@ -142,127 +248,5 @@ public class FamilyTreePanel extends JPanel {
     a2.addChild("A2.2");
     b.addChild("B1");
     return r;
-  }
-
-  private void rebuildSwingTree() {
-    swingRoot.removeAllChildren();
-    swingRoot.setUserObject(root.name);
-    buildChildren(swingRoot, root);
-    ((DefaultTreeModel) tree.getModel()).reload();
-    for (int i = 0; i < tree.getRowCount(); i++) tree.expandRow(i);
-    genogram.setRoot(root);
-  }
-
-  private void buildChildren(DefaultMutableTreeNode parentSwing, NaryNode parentModel) {
-    for (NaryNode c : parentModel.children) {
-      DefaultMutableTreeNode child = new DefaultMutableTreeNode(c.name);
-      parentSwing.add(child);
-      buildChildren(child, c);
-    }
-  }
-
-  private NaryNode findByPath(TreePath path) {
-    if (path == null) return null;
-    Object[] arr = path.getPath();
-    NaryNode cur = root;
-    for (int i = 1; i < arr.length; i++) {
-      String label = arr[i].toString();
-      Optional<NaryNode> next =
-          cur.children.stream().filter(n -> n.name.equals(label)).findFirst();
-      if (next.isEmpty()) return null;
-      cur = next.get();
-    }
-    return cur;
-  }
-
-  private void onAdd() {
-    TreePath sel = tree.getSelectionPath();
-    if (sel == null) {
-      JOptionPane.showMessageDialog(this, "Chọn một nút.");
-      return;
-    }
-    NaryNode node = findByPath(sel);
-    if (node == null) return;
-    String nm = nameField.getText().trim();
-    if (nm.isEmpty()) {
-      JOptionPane.showMessageDialog(this, "Nhập tên.");
-      return;
-    }
-    node.addChild(nm);
-    nameField.setText("");
-    rebuildSwingTree();
-  }
-
-  private void onEdit() {
-    TreePath sel = tree.getSelectionPath();
-    if (sel == null) {
-      JOptionPane.showMessageDialog(this, "Chọn một nút.");
-      return;
-    }
-    NaryNode node = findByPath(sel);
-    if (node == null) return;
-    String nm = nameField.getText().trim();
-    if (nm.isEmpty()) {
-      JOptionPane.showMessageDialog(this, "Nhập tên.");
-      return;
-    }
-    node.name = nm;
-    rebuildSwingTree();
-  }
-
-  private void onDelete() {
-    TreePath sel = tree.getSelectionPath();
-    if (sel == null) {
-      JOptionPane.showMessageDialog(this, "Chọn một nút.");
-      return;
-    }
-    NaryNode node = findByPath(sel);
-    if (node == null) return;
-    if (node == root) {
-      JOptionPane.showMessageDialog(this, "Không xóa được gốc.");
-      return;
-    }
-    node.removeFromParent();
-    rebuildSwingTree();
-  }
-
-  private void onCalc() {
-    java.util.Map<Integer, java.util.List<NaryNode>> byGen = new java.util.TreeMap<>();
-    bfs(root, (n, d) -> byGen.computeIfAbsent(d, k -> new java.util.ArrayList<>()).add(n));
-    StringBuilder sb = new StringBuilder();
-    for (var e : byGen.entrySet()) {
-      sb.append("Thế hệ ")
-          .append(e.getKey())
-          .append(": ")
-          .append(e.getValue().size())
-          .append(" thành viên\n");
-    }
-    int k = 1; 
-    java.util.List<NaryNode> genK = byGen.getOrDefault(k, java.util.List.of());
-    sb.append("\nThế hệ ").append(k).append(" (con-cháu mỗi người):\n");
-    for (NaryNode n : genK) {
-      sb.append("- ").append(n.name).append(": ").append(n.descendants()).append("\n");
-    }
-    stats.setText(sb.toString());
-  }
-
-  private interface Visitor {
-    void visit(NaryNode n, int depth);
-  }
-
-  private void bfs(NaryNode start, Visitor v) {
-    java.util.ArrayDeque<NaryNode> q = new java.util.ArrayDeque<>();
-    java.util.ArrayDeque<Integer> d = new java.util.ArrayDeque<>();
-    q.add(start);
-    d.add(0);
-    while (!q.isEmpty()) {
-      NaryNode cur = q.poll();
-      int dep = d.poll();
-      v.visit(cur, dep);
-      for (NaryNode c : cur.children) {
-        q.add(c);
-        d.add(dep + 1);
-      }
-    }
   }
 }

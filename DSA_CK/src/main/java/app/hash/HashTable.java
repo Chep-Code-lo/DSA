@@ -7,4 +7,5 @@ public interface HashTable<K, V>{
   int size();
   int capacity();
   String debugView();
+  String traceGet(K key);
 }

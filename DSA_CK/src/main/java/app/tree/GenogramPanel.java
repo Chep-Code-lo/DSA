@@ -44,7 +44,7 @@ public class GenogramPanel extends JPanel {
   }
 
   private void build(
-      mxGraph graph, Object parent, NaryNode node, java.util.Map<NaryNode, Object> map) {
+    mxGraph graph, Object parent, NaryNode node, java.util.Map<NaryNode, Object> map) {
     Object v = graph.insertVertex(parent, node.id, node.name, 20, 20, 120, 30);
     map.put(node, v);
     for (NaryNode c : node.children) {

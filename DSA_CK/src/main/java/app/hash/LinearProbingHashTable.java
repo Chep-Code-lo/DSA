@@ -103,4 +103,29 @@ public class LinearProbingHashTable<K, V> implements HashTable<K, V> {
     }
     return sb.toString();
   }
+
+  public String traceGet(K key) {
+    StringBuilder sb = new StringBuilder();
+    int m = a.length;
+    int i = idx(key);
+    sb.append("hash(").append(key).append(") % ").append(m).append(" = ").append(i).append('\n');
+    int steps = 0;
+    while (steps < m) {
+      HashEntry<K, V> e = a[i];
+      sb.append(String.format("Probe %d -> slot %d: %s\n", steps, i,
+          (e == null ? "EMPTY" : (e.tomb ? "TOMB" : ("KEY=" + e.key + ", VAL=" + e.value)))));
+      if (e == null) {
+        sb.append("Encountered EMPTY -> stop: NOT FOUND");
+        return sb.toString();
+      }
+      if (!e.tomb && (key == null ? e.key == null : key.equals(e.key))) {
+        sb.append("Match at slot ").append(i).append(" -> FOUND, value=").append(e.value);
+        return sb.toString();
+      }
+      i = (i + 1) % m;
+      steps++;
+    }
+    sb.append("Scanned all slots -> NOT FOUND");
+    return sb.toString();
+  }
 }
