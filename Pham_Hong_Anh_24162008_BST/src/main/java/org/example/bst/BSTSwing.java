@@ -7,3 +7,4 @@ public class BSTSwing {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new BSTFrame().setVisible(true));
     }
+}
