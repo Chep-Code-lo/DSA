@@ -12,6 +12,14 @@ public class ExprPanel extends JPanel {
     private final JTextArea prefix = new JTextArea(3, 30);
     private final JTextArea log = new JTextArea(5, 60);
     private final JTextField vars = new JTextField("");
+    private final StackVisualizer stackViz = new StackVisualizer();
+    private List<String> lastTokens = new ArrayList<>();
+    private int animationDelay = 300; // ms per step
+    private volatile boolean isPaused = false;
+    private SwingWorker<Void, StackVisualizer.Frame> animationWorker = null;
+    private JButton btnPause;
+    private JButton btnStop;
+    private JLabel statusLabel;
     // Theme colors
     private static final Color BG_COLOR = new Color(240, 242, 245);
     private static final Color ACCENT_COLOR = new Color(79, 70, 229);
@@ -23,6 +31,15 @@ public class ExprPanel extends JPanel {
     private static final String FONT_FAMILY = "SansSerif";
 
     public ExprPanel() {
+    // Khởi tạo leftPanel chứa khung trực quan hóa
+    JPanel leftPanel = new JPanel(new BorderLayout(10, 10));
+    leftPanel.setOpaque(false);
+    JPanel vizContainer = createRoundedPanel();
+    vizContainer.setLayout(new BorderLayout());
+    vizContainer.setBorder(createTitledBorder("🎬 Trực quan hóa Stack", new Color(147, 51, 234)));
+    vizContainer.add(stackViz, BorderLayout.CENTER);
+    vizContainer.setPreferredSize(new Dimension(0, 50));
+    leftPanel.add(vizContainer, BorderLayout.CENTER);
         setLayout(new BorderLayout(15, 15));
         setBackground(BG_COLOR);
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -34,9 +51,12 @@ public class ExprPanel extends JPanel {
         configureTextArea(input, INPUT_BG, true);
         inputPanel.add(new JScrollPane(input), BorderLayout.CENTER);
 
-        // Output section - vertical layout (top/bottom)
-        JPanel outputPanel = new JPanel(new GridLayout(2, 1, 10, 10));
-        outputPanel.setOpaque(false);
+        // 3 khung bên cạnh khung trực quan hóa với tiêu đề rõ ràng
+        JPanel infixPanel = createRoundedPanel();
+        infixPanel.setLayout(new BorderLayout());
+        infixPanel.setBorder(createTitledBorder("📝 Biểu thức trung tố (Infix)", ACCENT_COLOR));
+        configureTextArea(input, INPUT_BG, true);
+        infixPanel.add(new JScrollPane(input), BorderLayout.CENTER);
 
         JPanel postfixPanel = createRoundedPanel();
         postfixPanel.setLayout(new BorderLayout());
@@ -50,14 +70,55 @@ public class ExprPanel extends JPanel {
         configureTextArea(prefix, OUTPUT_BG, false);
         prefixPanel.add(new JScrollPane(prefix), BorderLayout.CENTER);
 
-        outputPanel.add(postfixPanel);
-        outputPanel.add(prefixPanel);
+        JPanel topRowRight = new JPanel(new GridLayout(1, 3, 10, 10));
+        topRowRight.setOpaque(false);
+        topRowRight.add(infixPanel);
+        topRowRight.add(postfixPanel);
+        topRowRight.add(prefixPanel);
+    // Tăng chiều cao cho 3 khung trên
+    infixPanel.setPreferredSize(new Dimension(0, 180));
+    postfixPanel.setPreferredSize(new Dimension(0, 180));
+    prefixPanel.setPreferredSize(new Dimension(0, 180));
+    topRowRight.setPreferredSize(new Dimension(0, 180));
+    // Tăng chiều cao cho 3 khung trên
+    infixPanel.setPreferredSize(new Dimension(0, 180));
+    postfixPanel.setPreferredSize(new Dimension(0, 180));
+    prefixPanel.setPreferredSize(new Dimension(0, 180));
+    topRowRight.setPreferredSize(new Dimension(0, 180));
 
-        // Center content - input on left, output on right
-        JPanel centerContent = new JPanel(new BorderLayout(10, 0));
-        centerContent.setOpaque(false);
-        centerContent.add(inputPanel, BorderLayout.CENTER);
-        centerContent.add(outputPanel, BorderLayout.EAST);
+        // Khung dưới chia làm 2 phần: Các bước chuyển đổi và Lịch sử
+        JPanel stepsPanel = createRoundedPanel();
+        stepsPanel.setLayout(new BorderLayout());
+        stepsPanel.setBorder(createTitledBorder("🔄 Các bước chuyển đổi", new Color(59, 130, 246)));
+        JTextArea stepsArea = new JTextArea(5, 30);
+        stepsArea.setEditable(false);
+        stepsArea.setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
+        stepsArea.setBackground(new Color(235, 245, 255));
+        stepsPanel.add(new JScrollPane(stepsArea), BorderLayout.CENTER);
+
+        JPanel historyPanel = createRoundedPanel();
+        historyPanel.setLayout(new BorderLayout());
+        historyPanel.setBorder(createTitledBorder("📋 Lịch sử", new Color(239, 68, 68)));
+        configureTextArea(log, LOG_BG, false);
+        historyPanel.add(new JScrollPane(log), BorderLayout.CENTER);
+
+        JPanel bottomRowRight = new JPanel(new GridLayout(1, 2, 10, 10));
+        bottomRowRight.setOpaque(false);
+        bottomRowRight.add(stepsPanel);
+        bottomRowRight.add(historyPanel);
+    // Giảm chiều cao cho 2 khung dưới
+    stepsPanel.setPreferredSize(new Dimension(0, 70));
+    historyPanel.setPreferredSize(new Dimension(0, 70));
+    bottomRowRight.setPreferredSize(new Dimension(0, 70));
+    // Giảm chiều cao cho 2 khung dưới
+    stepsPanel.setPreferredSize(new Dimension(0, 70));
+    historyPanel.setPreferredSize(new Dimension(0, 70));
+    bottomRowRight.setPreferredSize(new Dimension(0, 70));
+
+        JPanel rightPanel = new JPanel(new BorderLayout(10,10));
+        rightPanel.setOpaque(false);
+        rightPanel.add(topRowRight, BorderLayout.NORTH);
+        rightPanel.add(bottomRowRight, BorderLayout.CENTER);
 
         // Action panel
         JPanel actionPanel = createRoundedPanel();
@@ -68,36 +129,111 @@ public class ExprPanel extends JPanel {
         varsLabel.setFont(new Font(FONT_FAMILY, Font.BOLD, 16));
         varsLabel.setForeground(new Color(55, 65, 81));
 
-        vars.setColumns(25);
-        vars.setFont(new Font(FONT_FAMILY, Font.PLAIN, 16));
-        vars.setBorder(BorderFactory.createCompoundBorder(
-                new RoundBorder(BORDER_COLOR, 8),
-                BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
-        vars.setToolTipText("Ví dụ: a=1; b=2; c=3");
+    vars.setColumns(12); // Giảm chiều rộng khung điền biến
+    vars.setFont(new Font(FONT_FAMILY, Font.PLAIN, 16));
+    vars.setBorder(BorderFactory.createCompoundBorder(
+        new RoundBorder(BORDER_COLOR, 8),
+        BorderFactory.createEmptyBorder(8, 12, 8, 12)
+    ));
+    vars.setToolTipText("Ví dụ: a=1; b=2; c=3");
 
-        JButton btnConvert = createStyledButton("🔄 Chuyển đổi", ACCENT_COLOR);
-        JButton btnEval = createStyledButton("📊 Tính giá trị", new Color(16, 185, 129));
+    JButton btnConvert = createStyledButton("🔄 Chuyển đổi", ACCENT_COLOR);
+    JButton btnEval = createStyledButton("📊 Tính giá trị", new Color(16, 185, 129));
+    btnPause = createStyledButton("⏸️ Tạm dừng", new Color(245, 158, 11));
+    btnPause.setEnabled(false);
+    btnStop = createStyledButton("⏹️ Dừng", new Color(220, 38, 38));
+    btnStop.setEnabled(false);
+    JButton btnReset = createStyledButton("🔁 Reset", new Color(59, 130, 246));
+    statusLabel = new JLabel("Trạng thái: Idle");
+    statusLabel.setFont(new Font(FONT_FAMILY, Font.BOLD, 14));
+    statusLabel.setForeground(new Color(55, 65, 81));
 
+        // Ô điền tốc độ
+        JTextField speedField = new JTextField(String.valueOf(animationDelay), 5);
+        speedField.setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
+        speedField.setToolTipText("Nhập tốc độ (ms, ví dụ: 300)");
+        speedField.setHorizontalAlignment(JTextField.CENTER);
+        speedField.addActionListener(e -> {
+            try {
+                int val = Integer.parseInt(speedField.getText().trim());
+                animationDelay = Math.max(50, Math.min(2000, val));
+                speedField.setText(String.valueOf(animationDelay));
+            } catch (NumberFormatException ex) {
+                speedField.setText(String.valueOf(animationDelay));
+            }
+        });
+
+        // Sắp xếp lại các nút thao tác cho gọn
         actionPanel.add(varsLabel);
         actionPanel.add(vars);
         actionPanel.add(btnConvert);
         actionPanel.add(btnEval);
+        actionPanel.add(btnPause);
+        actionPanel.add(btnStop);
+        actionPanel.add(btnReset);
+        actionPanel.add(Box.createHorizontalStrut(8));
+        actionPanel.add(new JLabel("Tốc độ (ms):"));
+        actionPanel.add(speedField);
+        actionPanel.add(Box.createHorizontalStrut(10));
+        actionPanel.add(statusLabel);
 
-        // Log panel
-        JPanel logPanel = createRoundedPanel();
-        logPanel.setLayout(new BorderLayout());
-        logPanel.setBorder(createTitledBorder("📋 Nhật ký", new Color(239, 68, 68)));
-        configureTextArea(log, LOG_BG, false);
-        log.setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
-        logPanel.add(new JScrollPane(log), BorderLayout.CENTER);
+    // Xử lý nút reset
+    btnReset.addActionListener(e -> {
+        input.setText("");
+        postfix.setText("");
+        prefix.setText("");
+        log.setText("");
+        vars.setText("");
+        stackViz.clear();
+        statusLabel.setText("Trạng thái: Idle");
+        btnPause.setEnabled(false);
+        btnStop.setEnabled(false);
+    });
 
-        add(actionPanel, BorderLayout.NORTH);
-        add(centerContent, BorderLayout.CENTER);
-        add(logPanel, BorderLayout.SOUTH);
+    // Log panel (main right component) - reduce its height so top fields have room
+    JPanel logPanel = createRoundedPanel();
+    logPanel.setLayout(new BorderLayout());
+    logPanel.setBorder(createTitledBorder("📋 Nhật ký", new Color(239, 68, 68)));
+    logPanel.setPreferredSize(new Dimension(0, 120));
+    configureTextArea(log, LOG_BG, false);
+    log.setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
+    logPanel.add(new JScrollPane(log), BorderLayout.CENTER);
+
+    // Put left (inputs + visualizer) and right (top fields + log) into a horizontal split
+    JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+    split.setLeftComponent(leftPanel);
+    split.setRightComponent(rightPanel);
+    split.setResizeWeight(0.35);
+    split.setDividerSize(6);
+    split.setContinuousLayout(true);
+
+    add(actionPanel, BorderLayout.NORTH);
+    add(split, BorderLayout.CENTER);
 
         btnConvert.addActionListener(e -> doConvert());
         btnEval.addActionListener(e -> doEval());
+        btnPause.addActionListener(e -> {
+            if (animationWorker == null) return;
+            isPaused = !isPaused;
+            btnPause.setText(isPaused ? "▶️ Tiếp tục" : "⏸️ Tạm dừng");
+            SwingUtilities.invokeLater(() -> statusLabel.setText(isPaused ? "Trạng thái: Paused" : "Trạng thái: Running"));
+            if (!isPaused) {
+                synchronized (animationWorker) { animationWorker.notifyAll(); }
+            }
+        });
+
+        btnStop.addActionListener(e -> {
+            if (animationWorker != null && !animationWorker.isDone()) {
+                animationWorker.cancel(true);
+                stackViz.clear();
+                postfix.setText("");
+                SwingUtilities.invokeLater(() -> {
+                    statusLabel.setText("Trạng thái: Idle");
+                    btnPause.setEnabled(false);
+                    btnStop.setEnabled(false);
+                });
+            }
+        });
     }
 
     private JPanel createRoundedPanel() {
@@ -160,11 +296,11 @@ public class ExprPanel extends JPanel {
             }
         };
         button.setForeground(Color.WHITE);
-        button.setFont(new Font(FONT_FAMILY, Font.BOLD, 16));
+        button.setFont(new Font(FONT_FAMILY, Font.BOLD, 12));
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setContentAreaFilled(false);
-        button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        button.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return button;
     }
@@ -216,12 +352,117 @@ public class ExprPanel extends JPanel {
             List<String> tokens = ExprUtils.tokenize(input.getText());
             List<String> post = ExprUtils.toPostfix(tokens);
             List<String> pre = ExprUtils.toPrefix(tokens);
-            postfix.setText(String.join(" ", post));
-            prefix.setText(String.join(" ", pre));
+            // Khi bắt đầu trực quan hóa, xóa nội dung hậu tố và tiền tố
+            postfix.setText("");
+            prefix.setText("");
             log.append("✅ Đã chuyển đổi thành công.\n");
+            lastTokens = tokens;
+            animatePostfix(tokens, post, pre);
         } catch (Exception ex) {
             log.append("❌ Lỗi: " + ex.getMessage() + "\n");
         }
+    }
+
+    // Animate postfix conversion steps on stack visualizer
+    private void animatePostfix(List<String> tokens, List<String> post, List<String> pre) {
+        // If an animation is already running, cancel it
+        if (animationWorker != null && !animationWorker.isDone()) {
+            animationWorker.cancel(true);
+        }
+        // reset paused state and UI
+        isPaused = false;
+        if (btnPause != null) {
+            btnPause.setText("⏸️ Tạm dừng");
+            btnPause.setEnabled(false);
+        }
+        stackViz.clear();
+
+        // Use ExprUtils to get detailed steps then publish frames
+        String originalInfix = vars.getText().trim();
+        ExprUtils.ConversionResult cr = ExprUtils.toPostfixWithSteps(tokens);
+        String finalPostfix = String.join(" ", cr.result);
+        
+        animationWorker = new SwingWorker<Void, StackVisualizer.Frame>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                SwingUtilities.invokeLater(() -> {
+                    btnPause.setEnabled(true);
+                    btnStop.setEnabled(true);
+                    statusLabel.setText("Trạng thái: Running");
+                });
+                try {
+                    for (ExprUtils.ConversionStep step : cr.steps) {
+                        if (isCancelled()) break;
+                        List<String> stackState = step.stackState;
+                        String token = step.token == null ? "" : step.token;
+                        String action = step.action == null ? "" : step.action.toLowerCase();
+
+                        StackVisualizer.FrameAction fa;
+                        if (action.contains("push")) fa = StackVisualizer.FrameAction.PUSH_STACK;
+                        else if (action.contains("pop")) fa = StackVisualizer.FrameAction.POP_STACK;
+                        else if (action.contains("emit") || action.contains("output")) fa = StackVisualizer.FrameAction.TO_OUTPUT;
+                        else fa = StackVisualizer.FrameAction.PUSH_TOKEN;
+
+                        String currentOutput = String.join(" ", step.outputState);
+                        publish(stackViz.new Frame(token, stackState, fa, currentOutput));
+
+                        // update postfix display progressively
+                        SwingUtilities.invokeLater(() -> postfix.setText(currentOutput));
+
+                        // sleep in small chunks and respect pause
+                        int delay = Math.max(80, animationDelay);
+                        int slept = 0;
+                        while (slept < delay) {
+                            if (isCancelled()) break;
+                            if (isPaused) {
+                                synchronized (animationWorker) {
+                                    animationWorker.wait(200);
+                                }
+                                continue;
+                            }
+                            int chunk = Math.min(120, delay - slept);
+                            Thread.sleep(chunk);
+                            slept += chunk;
+                        }
+                    }
+
+                    // show final snapshot
+                    List<String> finalStack = cr.steps.isEmpty() ? List.of() : cr.steps.get(cr.steps.size() - 1).stackState;
+                    String finalOutput = String.join(" ", cr.result);
+                    publish(stackViz.new Frame("", finalStack, StackVisualizer.FrameAction.FINAL, finalOutput));
+                    // Sau animation, hiển thị kết quả hậu tố và tiền tố
+                    SwingUtilities.invokeLater(() -> {
+                        postfix.setText(String.join(" ", post));
+                        prefix.setText(String.join(" ", pre));
+                    });
+                } catch (InterruptedException ignored) {
+                } finally {
+                    SwingUtilities.invokeLater(() -> {
+                        btnPause.setEnabled(false);
+                        btnStop.setEnabled(false);
+                        statusLabel.setText("Trạng thái: Idle");
+                    });
+                }
+                return null;
+            }
+
+            @Override
+            protected void process(List<StackVisualizer.Frame> chunks) {
+                for (StackVisualizer.Frame f : chunks) stackViz.showFrame(f);
+            }
+
+            @Override
+            protected void done() {
+                animationWorker = null;
+                isPaused = false;
+                SwingUtilities.invokeLater(() -> {
+                    btnPause.setEnabled(false);
+                    btnStop.setEnabled(false);
+                    statusLabel.setText("Trạng thái: Idle");
+                });
+            }
+        };
+        animationWorker.execute();
     }
 
     private void doEval() {

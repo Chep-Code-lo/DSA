@@ -3,6 +3,49 @@ package app.hash;
 import java.util.*;
 
 public class LinearProbingHashTable<K, V> implements HashTable<K, V> {
+  public String tracePut(K key, V value) {
+    StringBuilder sb = new StringBuilder();
+    if (n + 1 > a.length * MAX_LF) {
+      sb.append("Load factor vượt ngưỡng, thực hiện rehash\n");
+    }
+    int i = idx(key);
+    int steps = 0;
+    while (true) {
+      HashEntry<K, V> e = a[i];
+      sb.append(String.format("Probe %d -> slot %d: %s\n", steps, i,
+          (e == null ? "EMPTY" : (e.tomb ? "TOMB" : ("KEY=" + e.key + ", VAL=" + e.value)))));
+      if (e == null || e.tomb) {
+        sb.append("Ghi mới tại slot ").append(i).append("\n");
+        break;
+      }
+      if (Objects.equals(e.key, key)) {
+        sb.append("Cập nhật giá trị tại slot ").append(i).append("\n");
+        break;
+      }
+      i = (i + 1) % a.length;
+      steps++;
+    }
+    return sb.toString();
+  }
+
+  public String traceRemove(K key) {
+    StringBuilder sb = new StringBuilder();
+    int i = idx(key), start = i, steps = 0;
+    while (a[i] != null) {
+      HashEntry<K, V> e = a[i];
+      sb.append(String.format("Probe %d -> slot %d: %s\n", steps, i,
+          (e == null ? "EMPTY" : (e.tomb ? "TOMB" : ("KEY=" + e.key + ", VAL=" + e.value)))));
+      if (!e.tomb && Objects.equals(e.key, key)) {
+        sb.append("Đánh dấu tomb tại slot ").append(i).append("\n");
+        return sb.toString();
+      }
+      i = (i + 1) % a.length;
+      steps++;
+      if (i == start) break;
+    }
+    sb.append("Không tìm thấy key để xóa\n");
+    return sb.toString();
+  }
   private HashEntry<K, V>[] a;
   int n = 0;
   final double MAX_LF = 0.6;

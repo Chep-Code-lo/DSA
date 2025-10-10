@@ -6,6 +6,31 @@ import java.util.function.Function;
 public class ExprUtils {
   private static final Set<String> OPS = Set.of("+", "-", "*", "/", "^");
 
+  // Step models for visualization
+  public static class ConversionStep {
+    public final String token; // current token processed
+    public final String action; // description
+    public final List<String> stackState; // top-first
+    public final List<String> outputState; // left-to-right
+
+    public ConversionStep(String token, String action, List<String> stackState, List<String> outputState) {
+      this.token = token;
+      this.action = action;
+      this.stackState = List.copyOf(stackState);
+      this.outputState = List.copyOf(outputState);
+    }
+  }
+
+  public static class ConversionResult {
+    public final List<ConversionStep> steps;
+    public final List<String> result;
+
+    public ConversionResult(List<ConversionStep> steps, List<String> result) {
+      this.steps = List.copyOf(steps);
+      this.result = List.copyOf(result);
+    }
+  }
+
   public static boolean isOperator(String s) {
     return OPS.contains(s);
   }
@@ -98,7 +123,7 @@ public class ExprUtils {
     validateTokens(tokens);
     ArrayList<String> out = new ArrayList<>();
     MyStack<String> ops = new MyStack<>();
-    for (String tk : tokens) {
+  for (String tk : tokens) {
       if (isNumber(tk) || isIdentifier(tk)) {
         out.add(tk);
       } else if ("(".equals(tk)) {
@@ -120,6 +145,58 @@ public class ExprUtils {
     while (!ops.isEmpty()) out.add(ops.pop());
     return out;
   }
+
+  // Return detailed steps for visualization while producing postfix result
+  public static ConversionResult toPostfixWithSteps(List<String> tokens) {
+    validateTokens(tokens);
+    ArrayList<String> out = new ArrayList<>();
+    MyStack<String> ops = new MyStack<>();
+    ArrayList<ConversionStep> steps = new ArrayList<>();
+
+    for (String tk : tokens) {
+      if (isNumber(tk) || isIdentifier(tk)) {
+        out.add(tk);
+  steps.add(new ConversionStep(tk, "Emit operand to output", ops.snapshotTopFirst(), List.copyOf(out)));
+      } else if ("(".equals(tk)) {
+        ops.push(tk);
+  steps.add(new ConversionStep(tk, "Push '(' to stack", ops.snapshotTopFirst(), List.copyOf(out)));
+      } else if (")".equals(tk)) {
+        // pop until '('
+        while (!ops.isEmpty() && !"(".equals(ops.peek())) {
+          String p = ops.pop();
+          out.add(p);
+          steps.add(new ConversionStep(p, "Pop operator to output (')' handling)", ops.snapshotTopFirst(), List.copyOf(out)));
+        }
+        if (!ops.isEmpty() && "(".equals(ops.peek())) {
+          ops.pop();
+          steps.add(new ConversionStep("", "Pop '(' from stack", ops.snapshotTopFirst(), List.copyOf(out)));
+        }
+      } else if (isOperator(tk)) {
+        while (!ops.isEmpty()) {
+          String top = ops.peek();
+          if (isOperator(top)
+              && (precedence(top) > precedence(tk)
+                  || (precedence(top) == precedence(tk) && !rightAssoc(tk)))) {
+            String p = ops.pop();
+            out.add(p);
+            steps.add(new ConversionStep(p, "Pop operator to output (precedence)", ops.snapshotTopFirst(), List.copyOf(out)));
+          } else break;
+        }
+        ops.push(tk);
+  steps.add(new ConversionStep(tk, "Push operator to stack", ops.snapshotTopFirst(), List.copyOf(out)));
+      } else throw new IllegalArgumentException("Token không hợp lệ: " + tk);
+    }
+
+    while (!ops.isEmpty()) {
+      String p = ops.pop();
+      out.add(p);
+      steps.add(new ConversionStep(p, "Pop remaining operator to output", ops.snapshotTopFirst(), List.copyOf(out)));
+    }
+
+    return new ConversionResult(steps, out);
+  }
+
+  // removed direct internal access; use MyStack.snapshotTopFirst()
 
   public static List<String> toPrefix(List<String> tokens) {
     validateTokens(tokens);

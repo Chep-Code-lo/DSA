@@ -30,4 +30,11 @@ public class MyStack<E> {
   public void clear() {
     a.clear();
   }
+
+  // Return a snapshot with top element first
+  List<E> snapshotTopFirst() {
+    ArrayList<E> s = new ArrayList<>();
+    for (int i = a.size() - 1; i >= 0; i--) s.add(a.get(i));
+    return s;
+  }
 }

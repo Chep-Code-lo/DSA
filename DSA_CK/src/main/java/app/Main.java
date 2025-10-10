@@ -1,16 +1,18 @@
 package app;
 
 import javax.swing.*;
+import app.ui.AppFrame;
 
 public class Main {
-  public static void main(String[] args) {
-    SwingUtilities.invokeLater(
-        () -> {
-          try {
+    public static void main(String[] args) {
+        try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-          } catch (Exception ignored) {
-          }
-          new app.ui.AppFrame().setVisible(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        SwingUtilities.invokeLater(() -> {
+            new AppFrame().setVisible(true);
         });
-  }
+    }
 }

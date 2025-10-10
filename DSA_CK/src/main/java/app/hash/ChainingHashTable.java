@@ -1,6 +1,42 @@
 package app.hash;
 
 public class ChainingHashTable<K, V> implements HashTable<K, V> {
+  public String tracePut(K key, V value) {
+    StringBuilder sb = new StringBuilder();
+    int i = idx(key);
+    sb.append("hash(").append(key).append(") % ").append(buckets.length).append(" = ").append(i).append('\n');
+    Node<K, V> h = buckets[i];
+    int pos = 0;
+    for (Node<K, V> p = h; p != null; p = p.next, pos++) {
+      sb.append(String.format("Visit node %d: key=%s, val=%s\n", pos, String.valueOf(p.k), String.valueOf(p.v)));
+      if (java.util.Objects.equals(p.k, key)) {
+        sb.append("Cập nhật giá trị tại node ").append(pos).append("\n");
+        return sb.toString();
+      }
+    }
+    sb.append("Thêm node mới vào đầu chain\n");
+    return sb.toString();
+  }
+
+  public String traceRemove(K key) {
+    StringBuilder sb = new StringBuilder();
+    int i = idx(key);
+    sb.append("hash(").append(key).append(") % ").append(buckets.length).append(" = ").append(i).append('\n');
+    Node<K, V> p = buckets[i], prev = null;
+    int pos = 0;
+    while (p != null) {
+      sb.append(String.format("Visit node %d: key=%s, val=%s\n", pos, String.valueOf(p.k), String.valueOf(p.v)));
+      if (java.util.Objects.equals(p.k, key)) {
+        sb.append("Xóa node tại vị trí ").append(pos).append("\n");
+        return sb.toString();
+      }
+      prev = p;
+      p = p.next;
+      pos++;
+    }
+    sb.append("Không tìm thấy key để xóa\n");
+    return sb.toString();
+  }
   static class Node<K, V> {
     K k;
     V v;
